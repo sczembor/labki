@@ -1,239 +1,195 @@
-//
-//  main.c
-//  labolatorium_c_3
-//
-//  Created by Stanislaw Czembor on 29/03/2019.
-//  Copyright © 2019 Stanislaw Czembor. All rights reserved.
-//
+/*
+  main.c
+  base_64_projekt
+
+  Created by Stanislaw Czembor on 18/04/2019.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "structs.h"
+#include <string.h>
+/*deklaracje funkcji*/
+char* odczytPliku(char* nazwaPliku);
+void kodowanieBase64(char* nazwaPliku,char* input);/*funkcja przyjmuje tekst do zakodowania i zwraca zakodowany ciag znakow*/
+void dekodowanieBase64(char* nazwaPliku,char* input);/*funkcja przyjmuje tekst do odkodowania i zwraca rozkodowany ciag znakow*/
+int zapisDoPliku(char* nazwaPliku,char* tekst);/*funckja przyjmuje docelowa nazwe pliku,zakodowany/rozkodowany ciag znakow. Nastepnie tworzy plik, zapisuje tekst i zwraca 1 jesli operacja sie powiodla i 0 jesli cos poszlo nie tak*/
+int znajdzWartosc(char znak);
+char zestawZnakow[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";/*zestaw znakow do konwersji base64*/
+char* input;
 
-void dodajNaPoczatekDzien(struct workday **pGlowa);//dodaje nowy dzien na poczatek listy
-void dodajNaPoczatekPrzerwe(struct przerwa **pGlowa);//dodaje nowa przerwe na poczatek listy podwieszanej
-void wyswietlOdPoczatku(struct workday *pGlowa);//funkcja wyswietla liste od poczatku
-const char* ZnajdzDzien(enum weekday dzien);//funkcja wyswietla nazwe dnia w zaleznosci od liczby
-void usunListe(struct workday *pGlowa);//funkcja usuwa cala liste podwieszana
-void sortowanie(workday **pHead);//funkcja sortuje liste wedlug czasu pracy rosnaca
-void zamien(workday **p1,workday **p2);//funkcja zamienia wartosci w danym elemencie listy
-int czasPracy(struct workday *pGlowa);//funkcja oblicza czas pracy w danym dniu
-//void wczytajDane(void);
-int main()
-{
-    workday* pHead=NULL;
-    char wybor;
-    printf("'d' - dodaj informacje o dniu pracy\n");
-    printf("'s' - posortuj dni wedlug czasu pracy\n");
-    printf("'p' - drukuj przebieg pracy\n");
-    printf("'q' - zakoncz dzialanie programu\n");
-    printf("wybierz: ");
-    scanf(" %c",&wybor);
-    while(wybor!='q')
-    {
-        if(wybor=='d')//dodaje dane o dniu pracy
-        {
-           dodajNaPoczatekDzien(&pHead);
-        }
-        else if(wybor=='s')//sotrtuje
-        {
-            sortowanie(&pHead);
-        }
-        else if(wybor=='p')//wyswietla na ekran
-        {
-            wyswietlOdPoczatku(pHead);
-        }
-        else//bledny wybor
-        {
 
-        }
-        printf("wybierz: ");
-        scanf(" %c",&wybor);
-    }
-    usunListe(pHead);
-   return 0;
-}
-void dodajNaPoczatekDzien(struct workday **pGlowa)
+int main(int argc, const char * argv[])
 {
-    workday *temp = (workday*)malloc(sizeof(struct workday));
-    int x;
-    int pom;
-    printf("\nwprowadz date:(MM) ");
-    scanf("%d",&x);
-    temp->data = x;
-    printf("\npodaj dzien:(1-7 wprowadz jeden dla poniedzialku) ");
-    scanf("%d",&x);
-    temp->dzien = x;
-    printf("\npodaj godzine rozpoczecia:(GGMM  wprowadz 1320 dla 13:20) ");
-    scanf("%d",&x);
-    temp->pocz.hour = (int)(x/100);
-    pom = (int)(x/100);
-    temp->pocz.min = (int)(x-(100*pom));
-    printf("\nwprowadz godzine zakonczenia:(GGMM) ");
-    scanf("%d",&x);
-    temp->koniec.hour = (int)(x/100);
-    pom = (int)(x/100);
-    temp->koniec.min = (int)(x-(100*pom));
-    char c;
-    przerwa* pPrzerwa = NULL;
-    do{
-        dodajNaPoczatekPrzerwe(&pPrzerwa);
-        printf("\nChcesz dodac nastepna przerwe? t/n :" );
-        scanf(" %c",&c);
-    }while(c=='t');
-    temp->breakk=pPrzerwa;
-    temp->next=*pGlowa;
-    *pGlowa = temp;
-}
-void dodajNaPoczatekPrzerwe(struct przerwa **pGlowa)
-{
-    int x,pom;
-    przerwa *temp1 =(przerwa*)malloc(sizeof(struct przerwa));
-    printf("\nwprowadz godzine rozpoczecia przerwy:(GGMM) ");
-    scanf("%d",&x);
-    temp1->start.hour = (int)(x/100);
-    pom = (int)(x/100);
-    temp1->start.min = (int)(x-(100*pom));
-    printf("\nwprowadz godzine zakonczenia przerwy:(GGMM) ");
-    scanf("%d",&x);
-    temp1->end.hour = (int)(x/100);
-    pom = (int)(x/100);
-    temp1->end.min = (int)(x-(100*pom));
-    temp1->nast = *pGlowa;
-    *pGlowa = temp1;
-}
-void wyswietlOdPoczatku(struct workday *pGlowa)
-{
-    while(pGlowa!=NULL)
+    char *nazwaPlikWe="domyslnyWe.txt", *nazwaPlikWy = "domyslnyWy.txt";
+    int i;
+    int k=0,d=0;
+    if(argc<=6)
     {
-        printf("%d ",pGlowa->data);
-        if(pGlowa->dzien>=1 && pGlowa->dzien<=7)
-            printf("%s",ZnajdzDzien(pGlowa->dzien));
-        printf(" od %d:%d do %d:%d przerwy: ",pGlowa->pocz.hour,pGlowa->pocz.min,pGlowa->koniec.hour,pGlowa->koniec.min);
-        przerwa* pPrzerwa = pGlowa->breakk;
-        
-        while(pPrzerwa!=NULL)
+        for(i = 1; i < argc ; i++)/*przelaczniki*/
         {
-            printf("od %d:%d do %d:%d \n",pPrzerwa->start.hour,pPrzerwa->start.min,pPrzerwa->end.hour,pPrzerwa->end.min);
-            pPrzerwa = pPrzerwa->nast;
-            
-        }
-        pGlowa = pGlowa ->next;
-    }
-}
-const char* ZnajdzDzien(enum weekday dzien)
-{
-    switch (dzien)
-    {
-        case Pon: return "Poniedzialek";
-        case Wto: return "Wtorek";
-        case Sro: return "Sroda";
-        case Czw: return "Czwartek";
-        case Pia: return "Piatek";
-        case Sob: return "Sobota";
-        case Nie: return "Niedziela";
-    }
-}
-void usunListe(struct workday *pGlowa)
-{
-    if(!pGlowa)
-        return;
-    workday* pom = NULL;
-    przerwa* pom1 = NULL;
-    przerwa* pPrzerwa = pGlowa->breakk;
-    while(pGlowa)
-    {
-        while(pPrzerwa)
-        {
-            pom1 =pPrzerwa->nast;
-            free(pPrzerwa);
-            pPrzerwa = pom1;
-        }
-        pom = pGlowa->next;
-        free(pGlowa);
-        pGlowa = pom;
-    }
-}
-void sortowanie(workday **pHead)
-{
-    workday *pTemp = *pHead;
-    workday *pPomocnik;
-    workday *min;
-    while(pTemp && pTemp->next)
-    {
-        min = pTemp;
-        pPomocnik = pTemp->next;
-        
-        while(pPomocnik)
-        {
-        /* Find minimum element from array */
-            if(czasPracy(min) > czasPracy(pPomocnik))
+            if(!strcmp(argv[i],"-i"))/*plik wejsciowy*/
             {
-                min = pPomocnik;
+                nazwaPlikWe = (char*)argv[i+1];
             }
-            
-            pPomocnik = pPomocnik->next;
+            else if (!strcmp(argv[i],"-k"))/*konwersja na base64*/
+            {
+                k=1;
+            }
+            else if (!strcmp(argv[i],"-d"))/*konwersja na ASCII*/
+            {
+                d=1;
+            }
+            else if (!strcmp(argv[i],"-o"))/*plik wyjsciowy*/
+            {
+                nazwaPlikWy = (char*)argv[i+1];
+            }
         }
-        zamien(&pTemp,&min);            // Put minimum element on starting location
-        pTemp = pTemp->next;
+        if (k==1)/*konwersja na base64*/
+        {
+            kodowanieBase64(nazwaPlikWy,odczytPliku(nazwaPlikWe));
+        }
+        else if (d==1)/*konwersja na ASCII*/
+        {
+            dekodowanieBase64(nazwaPlikWy,odczytPliku(nazwaPlikWe));
+        }
+        free(input);
     }
+    else
+    {
+        printf("wprowadzono za dużo przełączników!\n");
+    }
+    return 0;
+}
+void kodowanieBase64(char* nazwaPliku,char* input)
+{
+    int dlInput= (int)strlen(input);/*dlugosc tekstu*/
+    char* output = (char*) malloc((4*((dlInput+2)/3)+1)*sizeof(char));
+    int i, j,licznik=0,indeks,bity,a=0;
+    unsigned int k=0;
+    for(i = 0; i<dlInput; i += 3 )
+    {
+        licznik =0;
+        for(j = i; j<dlInput && j <= i +2; j++)
+        {
+            k = k << 8; /*przesuniecie bitow w lewo*/
+            k = k | input[j]; /* operacja lub na bitach*/
+            licznik++;
+        }
+        bity = licznik * 8;
+        while (bity > 0)
+        {
+
+            if (bity >= 6)
+            {
+                indeks = (k >> (bity-6)) & 63;/*63 = 111111 odczytanie wartosci indeksow*/
+                bity -= 6;
+            }
+            else
+            {
+                indeks = (k << (6-bity)) & 63;
+                bity = 0;
+            }
+            output[a++] = zestawZnakow[indeks];
+        }
+    }
+    for (i = 0; i <3-(dlInput%3) ; i++)
+    {
+        output[a++] = '=';
+    }
+    output[a] ='\0';
+    zapisDoPliku(nazwaPliku, output);
+    free(output);
+}
+void dekodowanieBase64(char* nazwaPliku,char* input)/*dzialaja maksymalnie 7 literowe*/
+{
+    int i,j,b;
+    int dlInput= (int)strlen(input);/*dlugosc tekstu*/
+    char* output = (char*) malloc(((dlInput*6)/8)*sizeof(char));
+    int iloscBitow=0,indeks,a=0;
+    unsigned int k =0;
+    for(i = 0; i<dlInput;i+=4)
+    {
+        j=0;
+        for(b=i; b<dlInput && b <= i+3; b++)
+        {
+            if(input[b]!='=')
+            {
+                k = k << 6;
+                k = k | znajdzWartosc(input[b]);
+                j++;
+            }
+        }
+        iloscBitow = j*6;
+        while(iloscBitow>0)
+        {
+            if(iloscBitow>=8)
+            {
+                indeks = (k>>(iloscBitow-8) & 255);/*255 = 11111111*/
+                iloscBitow = iloscBitow -8;
+            }
+            else
+            {
+                indeks = (k<<(8-iloscBitow) & 255);/*255 = 11111111*/
+                iloscBitow = 0;
+            }
+            output[a] = (char)indeks;
+            a++;
+        }
+    }
+    output[a] = '\0';
+    zapisDoPliku(nazwaPliku, output);
+    free(output);
 }
 
-/* swap data field of linked list */
-void zamien(workday **p1,workday **p2)
+int znajdzWartosc(char znak)
 {
-    int temp = (*p1)->data;
-    (*p1)->data = (*p2)->data;
-    (*p2)->data = temp;
-    enum weekday temp1 = (*p1)->dzien;
-    (*p1)->dzien = (*p2)->dzien;
-    (*p2)->dzien = temp1;
-    temp = (*p1)->pocz.hour;
-    (*p1)->pocz.hour = (*p2)->pocz.hour;
-    (*p2)->pocz.hour = temp;
-    temp = (*p1)->pocz.min;//
-    (*p1)->pocz.min = (*p2)->pocz.min;
-    (*p2)->pocz.min = temp;
-    temp = (*p1)->koniec.hour;
-    (*p1)->koniec.hour = (*p2)->koniec.hour;
-    (*p2)->koniec.hour = temp;
-    temp = (*p1)->koniec.min;
-    (*p1)->koniec.min = (*p2)->koniec.min;
-    (*p2)->koniec.min = temp;
-    przerwa* pTemp = (*p1)->breakk;
-    (*p1)->breakk = (*p2)->breakk;
-    (*p2)->breakk = pTemp;
-//    workday* pTemp1 = (*p1)->next;
-//    (*p1)->next = (*p2);
-//    (*p2)->next = pTemp1;
-    
-}
-int czasPracy(struct workday *pGlowa)
-{   int czasPrzerwy = 0;
-    przerwa* pTemp = pGlowa->breakk;
-    while(pTemp)
+    int i=0;
+    while(i<64)
     {
-        czasPrzerwy=+(pTemp->end.hour*60+pTemp->end.min)-(pTemp->start.hour*60+pTemp->start.min);
-        pTemp = pTemp->nast;
+        if(zestawZnakow[i]==znak)
+            return i;
+        i++;
     }
-    return (pGlowa->koniec.hour*60+pGlowa->koniec.min)-(pGlowa->pocz.hour*60+pGlowa->pocz.min)-czasPrzerwy;
+    return -1;
 }
-//void wczytajDane(void)
-//{
-//    char nazwaPliku[] = "week1.txt";
-//    FILE *plik = fopen ( nazwaPliku, "r" );
-//
-//    if (plik != NULL) {
-//        int data,pocz_hour,pocz_min,koniec_hour,koniec_min;
-//        char dzien[100000];
-//        fscanf(plik,"%d, %3s, %d, %d, %d",&data,dzien,&pocz_hour,&pocz_min,&koniec_hour,&koniec_min);
-//
-//
-//        printf("%d pocz: %d:%d koniec:%d:%d\n",data,pocz_hour,pocz_min,koniec_hour,koniec_min);
-//
-//        fclose(plik);
-//    }
-//    else {
-//        printf("nie udało się otworzyc pliku");
-//    }
-//}
+int zapisDoPliku(char* nazwaPliku,char* tekst)
+{
+    FILE *fPlikWy = fopen(nazwaPliku, "w+");/*proba utworzenia nowego pliku*/
+    if (fPlikWy != NULL)/*sprawdzam czy otwarcie pliku powiodlo sie*/
+    {
+        fprintf(fPlikWy,"%s",tekst);
+        fclose(fPlikWy);/*zamykam plik*/
+        return 1;/*zapis powiodl sie*/
+    }
+    else
+    {
+        printf("nie udało sie utworzyc pliku\n");
+        return 0;
+    }
+}
+char* odczytPliku(char* nazwaPliku)
+{
+    FILE *fPlikWe = fopen(nazwaPliku, "r");
+    if(fPlikWe != NULL)
+    {
+        int dlInput;
+        fseek(fPlikWe, 0, SEEK_END);/*ustwienie wskaznika na koniec pliku*/
+        dlInput = ftell(fPlikWe);/*sprawdzenie ile bajtow od poczatku do konca*/
+        input = (char*) malloc(dlInput*sizeof(char)+sizeof(char));
+        fseek (fPlikWe, 0, SEEK_SET);/*ustawienie wskaznika na poczatek pliku*/
+        if(input)
+        {
+            fread(input, sizeof(char), dlInput, fPlikWe);
+        }
+        fclose(fPlikWe);
+        return input;
+    }
+    else
+    {
+        printf("nie udalo sie otworzyc pliku\n");
+        return "0";
+    }
+}
+                  
+                  
+
